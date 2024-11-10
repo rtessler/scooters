@@ -9,24 +9,59 @@ import MapBox, {
   LineLayer,
 } from '@rnmapbox/maps';
 import { OnPressEvent } from '@rnmapbox/maps/lib/typescript/src/types/OnPressEvent';
-import { featureCollection, point } from '@turf/helpers';
-import { useState } from 'react';
+import { Feature, featureCollection, point, Properties } from '@turf/helpers';
+import { useEffect, useState } from 'react';
 
 import pin from '~/assets/pin.png';
-import moped from '~/assets/moped.png';
 import scooters from '~/data/scooters.json';
 import { getDirections } from '~/services/directions';
+import * as ExpoLocation from 'expo-location';
 
 MapBox.setAccessToken(process.env.EXPO_PUBLIC_MAPBOX_KEY || '');
 
 export default function Map() {
   const [direction, setDirection] = useState<any>(null);
-  const points = scooters.map((s) => point([s.long, s.lat]));
+  // const points = scooters.map((s) => point([s.long, s.lat]));
+  const [points, setPoints] = useState<Feature[]>([]);
   const directionCoordinates = direction?.routes?.[0]?.geometry.coordinates;
 
+  const generateScooterLocations = async () => {
+    const r = 0.01; // 1000 meters
+
+    const randomGeoLocations: { lat: number; long: number; id: number }[] = [];
+
+    const myLocation = await ExpoLocation.getCurrentPositionAsync();
+    console.log(myLocation);
+
+    scooters.forEach((p, index) => {
+      const u = Math.random();
+      const v = Math.random();
+      const w = r * Math.sqrt(u);
+      const t = 2 * Math.PI * v;
+      const x = w * Math.cos(t);
+      const y = w * Math.sin(t);
+
+      randomGeoLocations.push({
+        lat: myLocation.coords.latitude + x,
+        long: myLocation.coords.longitude + y,
+        id: index + 1,
+      });
+    });
+
+    const points = randomGeoLocations.map((s) => point([s.long, s.lat]));
+    setPoints(points ?? []);
+  };
+
+  useEffect(() => {
+    generateScooterLocations();
+  }, []);
+
   const onPointPress = async (event: OnPressEvent) => {
+    const myLocation = await ExpoLocation.getCurrentPositionAsync();
+    console.log(myLocation);
+
     const newDirection = await getDirections(
-      [2.1744, 41.4046],
+      [myLocation.coords.longitude, myLocation.coords.latitude],
       [event.coordinates.longitude, event.coordinates.latitude]
     );
     setDirection(newDirection);
@@ -103,7 +138,7 @@ export default function Map() {
               lineCap: 'round',
               lineJoin: 'round',
               lineWidth: 6,
-              lineDasharray: [0, 4, 3],
+              lineDasharray: [0, 2, 1],
             }}
           />
         </ShapeSource>

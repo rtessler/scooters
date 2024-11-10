@@ -10,3 +10,8 @@ npx expo run ios
 npx expo run android
 
 ![](screenshot.png)
+
+you will need to create a .env file
+you will need a mapbox accout to do this
+
+EXPO_PUBLIC_MAPBOX_KEY=<mapbox secret token>
